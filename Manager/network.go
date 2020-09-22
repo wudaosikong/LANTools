@@ -1,15 +1,16 @@
 package Manager
 
 import (
-	"github.com/color"
 	"io"
 	"net"
+
+	"github.com/fatih/color"
 )
 
 func Sender(conn *net.TCPConn, data chan []byte, isDisplay bool, counter chan int64) bool {
 	defer close(counter)
 
-	for tmp := range data{
+	for tmp := range data {
 		_, err := conn.Write(tmp)
 		if err != nil {
 			color.Red("发送失败", err)
@@ -30,10 +31,10 @@ func Receiver(conn *net.TCPConn, data chan []byte, isDisplay bool, counter chan 
 	for {
 		tmp := make([]byte, blockSize)
 		n, err := conn.Read(tmp)
-		if err != nil && err != io.EOF{
+		if err != nil && err != io.EOF {
 			color.Red("接收失败", err)
 			return false
-		}else if err == io.EOF{
+		} else if err == io.EOF {
 			return true
 		}
 		data <- tmp[:n]

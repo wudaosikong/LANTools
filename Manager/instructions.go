@@ -2,28 +2,29 @@ package Manager
 
 import (
 	"fmt"
-	"github.com/color"
 	"io/ioutil"
 	"os"
+
+	"github.com/fatih/color"
 )
 
-func Cd(path string)  {
+func Cd(path string) {
 	err := os.Chdir(path)
 	if err != nil {
 		color.Red("无法进入目录", err)
 	}
 }
 
-func Ls(isDir bool)  {
+func Ls(isDir bool) {
 	names, _ := ioutil.ReadDir("./")
 	var files []string
-	for _, file := range names{
+	for _, file := range names {
 		if file.IsDir() == isDir {
 			files = append(files, file.Name())
 		}
 	}
 	fmt.Println("文件列表：")
-	for num, file := range files{
+	for num, file := range files {
 		fmt.Printf("%d. %s\n", num, file)
 	}
 	fmt.Println()
@@ -38,9 +39,9 @@ func LsDir() {
 }
 
 // 显示功能
-func listFunc()  {
+func listFunc() {
 	fmt.Println("以下是本程序指令")
-	for name := range doc{
+	for name := range doc {
 		fmt.Println("	" + name)
 	}
 }

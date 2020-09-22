@@ -2,13 +2,15 @@ package Manager
 
 import (
 	"fmt"
-	"github.com/color"
 	"net"
 	"strconv"
+
+	"github.com/fatih/color"
 )
 
 func Accept() bool {
-	host, _ := net.ResolveTCPAddr("tcp4", "0.0.0.0" + filePort)
+	host, _ := net.ResolveTCPAddr("tcp4", "0.0.0.0"+filePort)
+	// fmt.Printf("%#v", host)
 	fmt.Println("监听：", host.IP, host.Port)
 	listener, err := net.ListenTCP("tcp", host)
 	if err != nil {
@@ -25,12 +27,12 @@ func Accept() bool {
 	// 成功分割线---------------------------------
 
 	filename := acceptName(conn)
-	if len(filename) == 0{
+	if len(filename) == 0 {
 		color.Red("接收文件名有误")
 		return false
 	}
 	size := acceptSize(conn)
-	if size == 0{
+	if size == 0 {
 		color.Red("接收文件大小有误")
 		return false
 	}
@@ -47,10 +49,10 @@ func Accept() bool {
 	}()
 
 	go DisplayCounter(size, counter)
-	
+
 	if <-writerResult && <-receiveResult {
 		color.Yellow("接收文件成功")
-	}else {
+	} else {
 		color.Red("接收文件失败")
 		return false
 	}
@@ -61,7 +63,7 @@ func Accept() bool {
 func acceptName(conn *net.TCPConn) string {
 	tmp := make([]byte, 200)
 	n, err := conn.Read(tmp)
-	if err != nil{
+	if err != nil {
 		color.Red("接收文件名失败", err)
 		tmp = []byte("fail")
 		_, _ = conn.Write(tmp)
@@ -76,7 +78,7 @@ func acceptName(conn *net.TCPConn) string {
 func acceptSize(conn *net.TCPConn) int64 {
 	tmp := make([]byte, 200)
 	n, err := conn.Read(tmp)
-	if err != nil{
+	if err != nil {
 		color.Red("接收文件大小失败", err)
 		tmp = []byte("fail")
 		_, _ = conn.Write(tmp)
@@ -91,9 +93,9 @@ func acceptSize(conn *net.TCPConn) int64 {
 func DisplayCounter(size int64, counter chan int64) {
 	totle := int64(0)
 	green := color.New(color.FgGreen)
-	for tmp := range counter{
+	for tmp := range counter {
 		totle += tmp
-		_, _ = green.Printf("总进度：%f%%\r", float64(totle) / float64(size) * 100)
+		_, _ = green.Printf("总进度：%d%%\r", int(float64(totle)/float64(size)*100))
 	}
 	fmt.Println("")
 }

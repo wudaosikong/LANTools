@@ -1,23 +1,24 @@
 package Manager
 
 import (
-	"github.com/color"
 	"net"
 	"os"
 	"strconv"
+
+	"github.com/fatih/color"
 )
 
 func Send(filename string, ip string) bool {
-	host, _ := net.ResolveTCPAddr("tcp4", ip + filePort)
+	host, _ := net.ResolveTCPAddr("tcp4", ip+filePort)
 	client, err := net.DialTCP("tcp", nil, host)
 	if err != nil {
 		color.Red("连接对方主机失败", err)
 		return false
 	}
 	defer client.Close()
-	
+
 	// 成功分割线----------------------
-	
+
 	file, err := os.Open(filename)
 	if err != nil {
 		color.Red("发送前文件打开失败", err)
@@ -25,10 +26,10 @@ func Send(filename string, ip string) bool {
 	}
 	info, _ := file.Stat()
 	size := info.Size()
-	if !sendName(filename, client){
+	if !sendName(filename, client) {
 		return false
 	}
-	if !sendSize(size, client){
+	if !sendSize(size, client) {
 		return false
 	}
 	file.Close()
@@ -48,7 +49,7 @@ func Send(filename string, ip string) bool {
 
 	if <-readerResult && <-senderResult {
 		color.Yellow("发送成功")
-	}else{
+	} else {
 		color.Red("发送失败")
 		return false
 	}
@@ -64,7 +65,7 @@ func sendName(filename string, client *net.TCPConn) bool {
 		return false
 	}
 	n, _ := client.Read(tmp)
-	if string(tmp[:n]) != "success"{
+	if string(tmp[:n]) != "success" {
 		color.Red("对方接收文件名失败")
 		return false
 	}
@@ -79,7 +80,7 @@ func sendSize(size int64, client *net.TCPConn) bool {
 		return false
 	}
 	n, _ := client.Read(tmp)
-	if string(tmp[:n]) != "success"{
+	if string(tmp[:n]) != "success" {
 		color.Red("对方接收文件大小失败")
 		return false
 	}
