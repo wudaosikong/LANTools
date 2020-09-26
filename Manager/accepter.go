@@ -1,6 +1,7 @@
 package Manager
 
 import (
+	"LANTools/tools"
 	"fmt"
 	"net"
 	"strconv"
@@ -26,14 +27,19 @@ func Accept() bool {
 
 	// 成功分割线---------------------------------
 
+	size := acceptSize(conn)
+	diskFree := tools.GetFree()
+	if size > diskFree {
+		color.Red("磁盘空间不足，请清理磁盘，需要空间：%dGB", size)
+		return false
+	} else if size == 0 {
+		color.Red("接收文件大小有误")
+		return false
+	}
+
 	filename := acceptName(conn)
 	if len(filename) == 0 {
 		color.Red("接收文件名有误")
-		return false
-	}
-	size := acceptSize(conn)
-	if size == 0 {
-		color.Red("接收文件大小有误")
 		return false
 	}
 

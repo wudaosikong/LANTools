@@ -4,11 +4,13 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/fatih/color"
 )
 
 func Send(filename string, ip string) bool {
+	start := time.Now()
 	host, _ := net.ResolveTCPAddr("tcp4", ip+filePort)
 	client, err := net.DialTCP("tcp", nil, host)
 	if err != nil {
@@ -26,10 +28,10 @@ func Send(filename string, ip string) bool {
 	}
 	info, _ := file.Stat()
 	size := info.Size()
-	if !sendName(filename, client) {
+	if !sendSize(size, client) {
 		return false
 	}
-	if !sendSize(size, client) {
+	if !sendName(filename, client) {
 		return false
 	}
 	file.Close()
@@ -48,12 +50,12 @@ func Send(filename string, ip string) bool {
 	go DisplayCounter(size, counter)
 
 	if <-readerResult && <-senderResult {
-		color.Yellow("发送成功")
+		cost := time.Since(start)
+		color.Yellow("发送成功，用时：%v\n速度：%d Mb//s", cost, size/int64(cost.Seconds())/1024/1024)
 	} else {
 		color.Red("发送失败")
 		return false
 	}
-
 	return true
 }
 

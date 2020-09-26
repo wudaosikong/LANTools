@@ -1,0 +1,2 @@
+[0922/204459.085:ERROR:exception_handler_server.cc(534)] ConnectNamedPipe: 管道正在被关闭。 (0xE8)
+[0926/144256.005:ERROR:exception_handler_server.cc(534)] ConnectNamedPipe: 管道正在被关闭。 (0xE8)
