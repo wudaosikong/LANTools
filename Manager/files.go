@@ -47,16 +47,12 @@ func FileReader(filename string, data chan []byte) bool {
 func FileWriter(filename string, data chan []byte) bool {
 	fileInfo, _ := os.Stat(filename)
 	for n, tmp := 1, filename; IsExit(filename); {
-		if fileInfo.IsDir() {
-			filename = tmp + "-副本" + strconv.Itoa(n)
-		} else {
+		if !fileInfo.IsDir() {
 			filename = tmp[:strings.LastIndex(tmp, ".")] + "-副本" + strconv.Itoa(n) + tmp[strings.LastIndex(tmp, "."):]
 		}
 		n++
 	}
-	if fileInfo.IsDir() {
-		os.Mkdir(filename, os.ModePerm)
-	} else {
+	if !fileInfo.IsDir() {
 		file, err := os.Create(filename)
 		if err != nil {
 			fmt.Println("文件创建失败", err)

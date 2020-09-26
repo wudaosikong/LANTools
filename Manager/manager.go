@@ -73,32 +73,30 @@ func (gui *GUI) Accept() {
 
 // 文件传输入口函数
 func (gui *GUI) fileTransport() {
-	LsFile()
-	fmt.Println(len(gui.FileList()), ". 取消")
+	LsAll()
+	fmt.Println(len(gui.FileList("./")), ". 取消")
 	var n int
 	_, err := fmt.Scanf("%d\n", &n)
 	if !checkErr(err, "输入错误: ") {
 		return
 	}
-	if n < 0 || n > len(gui.FileList()) {
+	if n < 0 || n > len(gui.FileList("./")) {
 		color.Red("文件选择错误！")
 		return
-	} else if n == len(gui.FileList()) {
+	} else if n == len(gui.FileList("./")) {
 		return
 	}
 	fmt.Println("请输入对方ID")
 	var ip string
 	_, _ = fmt.Scanln(&ip)
-	Send(gui.FileList()[n], ip)
+	Send(gui.FileList("./")[n], ip)
 }
 
-func (gui *GUI) FileList() []string {
-	FilesInfo, _ := ioutil.ReadDir("./")
+func (gui *GUI) FileList(path string) []string {
+	FilesInfo, _ := ioutil.ReadDir(path)
 	var files []string
 	for _, file := range FilesInfo {
-		if !file.IsDir() {
-			files = append(files, file.Name())
-		}
+		files = append(files, file.Name())
 	}
 	return files
 }

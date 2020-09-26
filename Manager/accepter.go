@@ -3,10 +3,10 @@ package Manager
 import (
 	"LANTools/tools"
 	"fmt"
-	"net"
-	"strconv"
-
 	"github.com/fatih/color"
+	"net"
+	"os"
+	"strconv"
 )
 
 func Accept() bool {
@@ -27,22 +27,41 @@ func Accept() bool {
 
 	// 成功分割线---------------------------------
 
-	size := acceptSize(conn)
-	diskFree := tools.GetFree()
-	if size > diskFree {
-		color.Red("磁盘空间不足，请清理磁盘，需要空间：%dGB", size)
-		return false
-	} else if size == 0 {
-		color.Red("接收文件大小有误")
-		return false
-	}
-
 	filename := acceptName(conn)
 	if len(filename) == 0 {
 		color.Red("接收文件名有误")
 		return false
+	} else if filename == "isDir" {
+		filename = acceptName(conn)
+		fileInfo, _ := os.Stat(filename)
+		for n, tmp := 1, filename; IsExit(filename); {
+			if fileInfo.IsDir() {
+				filename = tmp + "-副本" + strconv.Itoa(n)
+			}
+			n++
+		}
+		os.Mkdir(filename, os.ModePerm)
+	} else if filename == "isFile" {
+		filename = acceptName(conn)
+		if len(filename) == 0 {
+			color.Red("接收文件名有误2")
+			return false
+		}
+		size := acceptSize(conn)
+		diskFree := tools.GetFree()
+		if size > diskFree {
+			color.Red("磁盘空间不足，请清理磁盘，需要空间：%dGB", size)
+			return false
+		} else if size == 0 {
+			color.Red("接收文件大小有误")
+			return false
+		}
+		fileReceive(filename, conn, size)
 	}
+	return true
+}
 
+func fileReceive(filename string, conn *net.TCPConn, size int64) bool {
 	data := make(chan []byte, blockSize)
 	writerResult := make(chan bool)
 	receiveResult := make(chan bool)
@@ -62,7 +81,6 @@ func Accept() bool {
 		color.Red("接收文件失败")
 		return false
 	}
-
 	return true
 }
 
