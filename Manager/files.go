@@ -45,29 +45,32 @@ func FileReader(filename string, data chan []byte) bool {
 }
 
 func FileWriter(filename string, data chan []byte) bool {
+	fileInfo, _ := os.Stat(filename)
 	for n, tmp := 1, filename; IsExit(filename); {
-		file, _ := os.Stat(filename)
-		if file.IsDir() {
+		if fileInfo.IsDir() {
 			filename = tmp + "-副本" + strconv.Itoa(n)
 		} else {
 			filename = tmp[:strings.LastIndex(tmp, ".")] + "-副本" + strconv.Itoa(n) + tmp[strings.LastIndex(tmp, "."):]
 		}
 		n++
 	}
-	file, err := os.Create(filename)
-	if err != nil {
-		fmt.Println("文件创建失败", err)
-		return false
-	}
-	defer file.Close()
-
-	for bytes := range data {
-		_, err = file.Write(bytes)
+	if fileInfo.IsDir() {
+		os.Mkdir(filename, os.ModePerm)
+	} else {
+		file, err := os.Create(filename)
 		if err != nil {
-			fmt.Println("文件写入错误", err)
+			fmt.Println("文件创建失败", err)
 			return false
 		}
-	}
+		defer file.Close()
+		for bytes := range data {
+			_, err = file.Write(bytes)
+			if err != nil {
+				fmt.Println("文件写入错误", err)
+				return false
+			}
+		}
 
+	}
 	return true
 }
