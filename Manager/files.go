@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -18,6 +19,17 @@ func IsExit(name string) bool {
 		return true
 	}
 	return false
+}
+
+func DirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
 }
 
 func FileReader(filename string, data chan []byte) bool {
@@ -47,12 +59,16 @@ func FileReader(filename string, data chan []byte) bool {
 func FileWriter(filename string, data chan []byte) bool {
 	fileInfo, _ := os.Stat(filename)
 	for n, tmp := 1, filename; IsExit(filename); {
-		if !fileInfo.IsDir() {
+		if fileInfo.IsDir() {
+			filename = tmp + "-副本" + strconv.Itoa(n)
+		} else {
 			filename = tmp[:strings.LastIndex(tmp, ".")] + "-副本" + strconv.Itoa(n) + tmp[strings.LastIndex(tmp, "."):]
 		}
 		n++
 	}
-	if !fileInfo.IsDir() {
+	if fileInfo.IsDir() {
+		os.Mkdir(filename, os.ModePerm)
+	} else {
 		file, err := os.Create(filename)
 		if err != nil {
 			fmt.Println("文件创建失败", err)

@@ -1,3 +1,5 @@
 [0917/174545.914:ERROR:exception_handler_server.cc(534)] ConnectNamedPipe: 管道正在被关闭。 (0xE8)
 [0921/141500.333:ERROR:exception_handler_server.cc(534)] ConnectNamedPipe: 管道正在被关闭。 (0xE8)
 [0926/085656.267:ERROR:exception_handler_server.cc(534)] ConnectNamedPipe: 管道正在被关闭。 (0xE8)
+[0927/091314.937:ERROR:exception_handler_server.cc(534)] ConnectNamedPipe: 管道正在被关闭。 (0xE8)
+[0927/091742.021:ERROR:exception_handler_server.cc(534)] ConnectNamedPipe: 管道正在被关闭。 (0xE8)

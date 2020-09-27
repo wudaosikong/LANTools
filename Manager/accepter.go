@@ -3,15 +3,15 @@ package Manager
 import (
 	"LANTools/tools"
 	"fmt"
-	"github.com/fatih/color"
 	"net"
 	"os"
 	"strconv"
+
+	"github.com/fatih/color"
 )
 
 func Accept() bool {
 	host, _ := net.ResolveTCPAddr("tcp4", "0.0.0.0"+filePort)
-	// fmt.Printf("%#v", host)
 	fmt.Println("监听：", host.IP, host.Port)
 	listener, err := net.ListenTCP("tcp", host)
 	if err != nil {
@@ -26,39 +26,51 @@ func Accept() bool {
 	defer conn.Close()
 
 	// 成功分割线---------------------------------
+	for loop := false; !loop; {
+		loop = acceptFile(conn)
+	}
+	return true
+}
 
+var sizeTotle int64
+
+func acceptFile(conn *net.TCPConn) bool {
 	filename := acceptName(conn)
 	if len(filename) == 0 {
-		color.Red("接收文件名有误")
+		color.Red("接收文件信息有误")
 		return false
 	} else if filename == "isDir" {
 		filename = acceptName(conn)
-		fileInfo, _ := os.Stat(filename)
-		for n, tmp := 1, filename; IsExit(filename); {
-			if fileInfo.IsDir() {
-				filename = tmp + "-副本" + strconv.Itoa(n)
-			}
-			n++
+		if len(filename) == 0 {
+			color.Red("接收文件夹名有误")
+			return false
 		}
-		os.Mkdir(filename, os.ModePerm)
+		sizeTotle = acceptSize(conn)
+		diskFree := tools.GetFree()
+		if sizeTotle > diskFree {
+			color.Red("磁盘空间不足，请清理磁盘，需要空间：%dGB", sizeTotle)
+			return false
+		}
+		if !IsExit(filename) {
+			os.Mkdir(filename, os.ModePerm)
+		}
 	} else if filename == "isFile" {
 		filename = acceptName(conn)
 		if len(filename) == 0 {
-			color.Red("接收文件名有误2")
+			color.Red("接收文件名有误")
 			return false
 		}
-		size := acceptSize(conn)
-		diskFree := tools.GetFree()
-		if size > diskFree {
-			color.Red("磁盘空间不足，请清理磁盘，需要空间：%dGB", size)
-			return false
-		} else if size == 0 {
+		sizeFile := acceptSize(conn)
+		if sizeFile == 0 {
 			color.Red("接收文件大小有误")
 			return false
 		}
-		fileReceive(filename, conn, size)
+		fmt.Println("size:", sizeTotle)
+		if final := fileReceive(filename, conn, sizeTotle); final {
+			return true
+		}
 	}
-	return true
+	return false
 }
 
 func fileReceive(filename string, conn *net.TCPConn, size int64) bool {
@@ -77,18 +89,18 @@ func fileReceive(filename string, conn *net.TCPConn, size int64) bool {
 
 	if <-writerResult && <-receiveResult {
 		color.Yellow("接收文件成功")
+		return true
 	} else {
 		color.Red("接收文件失败")
 		return false
 	}
-	return true
 }
 
 func acceptName(conn *net.TCPConn) string {
 	tmp := make([]byte, 200)
 	n, err := conn.Read(tmp)
 	if err != nil {
-		color.Red("接收文件名失败", err)
+		color.Red("接收文件信息&文件名失败", err)
 		tmp = []byte("fail")
 		_, _ = conn.Write(tmp)
 		return ""
@@ -117,9 +129,11 @@ func acceptSize(conn *net.TCPConn) int64 {
 func DisplayCounter(size int64, counter chan int64) {
 	totle := int64(0)
 	green := color.New(color.FgGreen)
+	fmt.Println("size:", size)
 	for tmp := range counter {
 		totle += tmp
 		_, _ = green.Printf("总进度：%d%%\r", int(float64(totle)/float64(size)*100))
 	}
+	fmt.Println("totle:", totle)
 	fmt.Println("")
 }

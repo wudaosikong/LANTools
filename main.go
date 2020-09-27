@@ -9,7 +9,6 @@ import (
 var ch = make(chan []byte, 10)
 
 func main() {
-	// fmt.Println(tools.GetFree())
 	fmt.Println("开始启动！")
 	LocalIps := GetIntranetIp()
 	fmt.Print("你的ID是：")
