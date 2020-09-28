@@ -26,13 +26,16 @@ func Accept() bool {
 	defer conn.Close()
 
 	// 成功分割线---------------------------------
-	for loop := false; !loop; {
-		loop = acceptFile(conn)
+	acceptFile(conn)
+	for totleSize < acceptSizeTotle {
+		acceptFile(conn)
 	}
+
 	return true
 }
 
-var sizeTotle int64
+var acceptSizeTotle int64
+var acceptSwitch bool = true
 
 func acceptFile(conn *net.TCPConn) bool {
 	filename := acceptName(conn)
@@ -40,23 +43,27 @@ func acceptFile(conn *net.TCPConn) bool {
 		color.Red("接收文件信息有误")
 		return false
 	} else if filename == "isDir" {
-		filename = acceptName(conn)
-		if len(filename) == 0 {
+		dirName := acceptName(conn)
+		if len(dirName) == 0 {
 			color.Red("接收文件夹名有误")
 			return false
 		}
-		sizeTotle = acceptSize(conn)
-		diskFree := tools.GetFree()
-		if sizeTotle > diskFree {
-			color.Red("磁盘空间不足，请清理磁盘，需要空间：%dGB", sizeTotle)
-			return false
-		}
-		if !IsExit(filename) {
-			os.Mkdir(filename, os.ModePerm)
+		if acceptSwitch {
+			acceptSizeTotle = acceptSize(conn)
+			diskFree := tools.GetFree()
+			if acceptSizeTotle > diskFree {
+				color.Red("磁盘空间不足，请清理磁盘，需要空间：%dGB", acceptSizeTotle)
+				return false
+			}
+			if !IsExit(dirName) {
+				os.Mkdir(dirName, os.ModePerm)
+			}
+			acceptSwitch = false
 		}
 	} else if filename == "isFile" {
-		filename = acceptName(conn)
-		if len(filename) == 0 {
+		fileName := acceptName(conn)
+		fmt.Print(filename)
+		if len(fileName) == 0 {
 			color.Red("接收文件名有误")
 			return false
 		}
@@ -65,12 +72,9 @@ func acceptFile(conn *net.TCPConn) bool {
 			color.Red("接收文件大小有误")
 			return false
 		}
-		fmt.Println("size:", sizeTotle)
-		if final := fileReceive(filename, conn, sizeTotle); final {
-			return true
-		}
+		fileReceive(fileName, conn, acceptSizeTotle)
 	}
-	return false
+	return true
 }
 
 func fileReceive(filename string, conn *net.TCPConn, size int64) bool {
@@ -86,7 +90,6 @@ func fileReceive(filename string, conn *net.TCPConn, size int64) bool {
 	}()
 
 	go DisplayCounter(size, counter)
-
 	if <-writerResult && <-receiveResult {
 		color.Yellow("接收文件成功")
 		return true
@@ -126,14 +129,15 @@ func acceptSize(conn *net.TCPConn) int64 {
 	return res
 }
 
+var totleAll = int64(0)
+
 func DisplayCounter(size int64, counter chan int64) {
 	totle := int64(0)
 	green := color.New(color.FgGreen)
-	fmt.Println("size:", size)
 	for tmp := range counter {
 		totle += tmp
+		totleAll = totle
 		_, _ = green.Printf("总进度：%d%%\r", int(float64(totle)/float64(size)*100))
 	}
-	fmt.Println("totle:", totle)
 	fmt.Println("")
 }

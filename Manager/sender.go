@@ -1,6 +1,7 @@
 package Manager
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -19,80 +20,99 @@ func Send(filename string, ip string) bool {
 	defer client.Close()
 
 	// 成功分割线----------------------
+
 	if fileInfo, _ := os.Stat(filename); fileInfo.IsDir() {
 		filepath.Walk(filename, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				tmp := filepath.ToSlash(path)
-				sendFile(tmp, true, client)
+				sendDir(tmp, client)
 			} else {
 				tmp := filepath.ToSlash(path)
-				sendFile(tmp, false, client)
+				sendFile(tmp, client)
+				sendEOF(client)
 			}
 			return nil
 		})
 	} else {
-		return sendFile(filename, false, client)
+		return sendFile(filename, client)
 	}
 	return true
 }
 
-func sendFile(filename string, isDir bool, client *net.TCPConn) bool {
-	if isDir {
-		size, _ := DirSize(filename)
-		if !sendDirInfo(filename, client) {
+var sendSizeTotle int64
+var sendSwitch bool = true
+
+func sendEOF(client *net.TCPConn) bool {
+	EOF := []byte("EOF")
+	_, err := client.Write(EOF)
+	if err != nil {
+		color.Red("发送文件信息失败", err)
+		return false
+	}
+	return true
+}
+
+func sendDir(filename string, client *net.TCPConn) bool {
+	if !sendDirInfo(filename, client) {
+		return false
+	}
+	if !sendName(filename, client) {
+		return false
+	}
+	if sendSwitch == true {
+		sendSizeTotle, _ := DirSize(filename)
+		if !sendSize(sendSizeTotle, client) {
 			return false
 		}
-		if !sendName(filename, client) {
-			return false
-		}
-		if !sendSize(size, client) {
-			return false
-		}
+		sendSwitch = false
+	}
+	return true
+}
+
+func sendFile(filename string, client *net.TCPConn) bool {
+	file, err := os.Open(filename)
+	if err != nil {
+		color.Red("发送前文件打开失败", err)
+		return false
+	}
+	info, _ := file.Stat()
+	size := info.Size()
+	if !sendFileInfo(filename, client) {
+		return false
+	}
+	if !sendName(filename, client) {
+		return false
+	}
+	if !sendSize(size, client) {
+		return false
+	}
+	file.Close()
+	readerResult := make(chan bool)
+	senderResult := make(chan bool)
+	counter := make(chan int64)
+	data := make(chan []byte, 1024)
+	go func() {
+		readerResult <- FileReader(filename, data)
+	}()
+	go func() {
+		senderResult <- Sender(client, data, true, counter)
+	}()
+
+	go DisplayCounter(sendSizeTotle, counter)
+
+	if <-readerResult && <-senderResult {
+		// cost := time.Since(start)
+		// end := cost.Seconds()
+		// if end == 0 {
+		// 	end = 1
+		// }
+		// fmt.Println(end)
+		// color.Yellow("%s发送成功，用时：%v\n速度：%d Mb//s", filename, cost, size/int64(end)/1024/1024)
+		color.Yellow("%s 发送成功", filename)
+
 	} else {
-		file, err := os.Open(filename)
-		if err != nil {
-			color.Red("发送前文件打开失败", err)
-			return false
-		}
-		info, _ := file.Stat()
-		size := info.Size()
-		if !sendFileInfo(filename, client) {
-			return false
-		}
-		if !sendName(filename, client) {
-			return false
-		}
-		if !sendSize(size, client) {
-			return false
-		}
-		file.Close()
-		readerResult := make(chan bool)
-		senderResult := make(chan bool)
-		counter := make(chan int64)
-		data := make(chan []byte, 1024)
-		go func() {
-			readerResult <- FileReader(filename, data)
-		}()
-		go func() {
-			senderResult <- Sender(client, data, true, counter)
-		}()
-
-		go DisplayCounter(size, counter)
-
-		if <-readerResult && <-senderResult {
-			// cost := time.Since(start)
-			// end := cost.Seconds()
-			// if end == 0 {
-			// 	end = 1
-			// }
-			// fmt.Println(end)
-			// color.Yellow("%s发送成功，用时：%v\n速度：%d Mb//s", filename, cost, size/int64(end)/1024/1024)
-			color.Yellow("%s 发送成功", filename)
-
-		} else {
-			color.Red("发送失败")
-			return false
-		}
+		color.Red("发送失败")
+		return false
 	}
 	return true
 }
@@ -106,6 +126,7 @@ func sendDirInfo(filename string, client *net.TCPConn) bool {
 	}
 	tmp := make([]byte, 7)
 	n, _ := client.Read(tmp)
+	fmt.Println(filename, string(tmp[:n]))
 	if string(tmp[:n]) != "success" {
 		color.Red("对方接收文件夹信息失败")
 		return false
@@ -120,7 +141,7 @@ func sendFileInfo(filename string, client *net.TCPConn) bool {
 		color.Red("发送文件信息失败", err)
 		return false
 	}
-	tmp := make([]byte, 200)
+	tmp := make([]byte, 7)
 	n, _ := client.Read(tmp)
 	if string(tmp[:n]) != "success" {
 		color.Red("对方接收文件信息失败")

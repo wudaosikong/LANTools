@@ -24,6 +24,8 @@ func Sender(conn *net.TCPConn, data chan []byte, isDisplay bool, counter chan in
 	return true
 }
 
+var totleSize int64
+
 func Receiver(conn *net.TCPConn, data chan []byte, isDisplay bool, counter chan int64) bool {
 	defer close(data)
 	defer close(counter)
@@ -37,8 +39,13 @@ func Receiver(conn *net.TCPConn, data chan []byte, isDisplay bool, counter chan 
 		} else if err == io.EOF {
 			return true
 		}
-		data <- tmp[:n]
-		if isDisplay {
+		if string(tmp[:n]) == "EOF" {
+			return true
+		} else {
+			data <- tmp[:n]
+		}
+		if isDisplay && string(tmp[:n]) != "EOF" {
+			totleSize += int64(n)
 			counter <- int64(n)
 		}
 	}
